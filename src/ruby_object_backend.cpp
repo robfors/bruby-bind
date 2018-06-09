@@ -59,7 +59,7 @@ namespace ESRubyBind
     }
     
     mrb_value ruby_return;
-    ruby_return = mrb_funcall_argv(_mrb, _ruby_self, mrb_intern_lit(_mrb, "send"), ruby_args.size(), ruby_args.data());
+    ruby_return = mrb_funcall_argv(_mrb, _ruby_self, mrb_intern_lit(_mrb, "__send__"), ruby_args.size(), ruby_args.data());
     
     if (_mrb->exc)
     {

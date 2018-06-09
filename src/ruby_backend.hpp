@@ -29,8 +29,6 @@
 #include "esruby_bind_extern.hpp"
 
 
-extern struct RProc* create_proc_from_string(mrb_state *mrb, char *s, mrb_int len, mrb_value binding, const char *file, mrb_int line);
-
 namespace ESRubyBind
 {
 
@@ -42,7 +40,6 @@ namespace ESRubyBind
     RubyBackend(); // only needed for EMSCRIPTEN_BINDINGS to work
     
     static emscripten::val eval(emscripten::val js_code);
-    static emscripten::val vm_run(emscripten::val js_code);
     
   };
   

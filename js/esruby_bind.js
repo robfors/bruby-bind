@@ -25,26 +25,32 @@ ESRubyBind.RubyObject = class
   {
     switch (key)
     {
-    case "esruby_bind_class":
+    case 'esruby_bind_class':
       return ESRubyBind.RubyObject;
-    case "esruby_bind_backend":
+    case 'esruby_bind_backend':
       return target.backend;
-    case "forget":
+    case 'forget':
       return (function () {target.backend.delete();});
+    case 'send':
+      return function (method_name, args)
+      {
+        var method_name = String(method_name);
+        return target.backend.send(method_name, args);
+      }
     default:
       var name = String(key);
       var is_constant = (name[0] !== name[0].toLowerCase());
       if (is_constant)
       {
-        if (target.backend.send("respond_to?", ["const_get"]))
-          return target.backend.send("const_get", [name]);
+        if (target.backend.send('respond_to?', ['const_get']))
+          return target.backend.send('const_get', [name]);
         else
-          throw "Error: Can not get a constant from that object.";
+          throw 'Error: Can not get constants from that object.';
       }
       else
       {
         var name_symbol = new ESRubyBind.RubySymbol(name);
-        return target.backend.send("method", [name_symbol]);
+        return target.backend.send('method', [name_symbol]);
       }
     }
   }
@@ -55,14 +61,14 @@ ESRubyBind.RubyObject = class
     var is_constant = (name[0] !== name[0].toLowerCase());
     if (is_constant)
     {
-      if (target.backend.send("respond_to?", ["const_set"]))
-        target.backend.send("const_set", [name, new_value]);
+      if (target.backend.send('respond_to?', ['const_set']))
+        target.backend.send('const_set', [name, new_value]);
       else
-        throw "Error: Can not set a constant from that object.";
+        throw 'Error: Can not set constants to that object.';
     }
     else
     {
-      name += "=";
+      name += '=';
       target.backend.send(name, [new_value]);
     }
     return true;
@@ -86,25 +92,24 @@ ESRubyBind._Ruby = class
   {
     switch (key)
     {
-    case "eval":
-      return ESRubyBind.eval;
+    case 'eval':
+      return this.eval = this.eval || ESRubyBind.eval;
+    case 'Object':
+      return this.Object = this.Object || Ruby.eval('Object');
+    case 'Kernel':
+      return this.Kernel = this.Kernel || Ruby.eval('Kernel');
     default:
       var name = String(key);
       var is_constant = (name[0] !== name[0].toLowerCase());
       if (is_constant)
-      {
-        return Ruby.eval("Object")[name];
-      }
-      else
-      {
-        // i would rather try to get a local variable first but i can't
-        //   figure out how to do that yet
-        var method_exists = Ruby.Object.send("respond_to?", name);
-        if (method_exists)
-          return Ruby.Object[name];
-        else
-          return Ruby.eval(name); // try local variable
-      }
+        return Ruby.Object[name];
+      var method_exists = Ruby.Kernel.send('respond_to?', [name]);
+      if (method_exists)
+        return this.Kernel[name];
+      var global_variable_defined = Ruby.Kernel.send('global_variable_defined?', [name]);
+      if (global_variable_defined)
+        return Ruby.Kernel.send('global_variable_get', [name]);
+      throw 'Error: No method, constant or global variable exists with that name.';
     }
   }
   
@@ -113,13 +118,17 @@ ESRubyBind._Ruby = class
     var name = String(key);
     var is_constant = (name[0] !== name[0].toLowerCase());
     if (is_constant)
-      Ruby.Object[key] = new_value;
-    else
     {
-      Ruby.ESRubyBind.global_object_to_set = new_value;
-      Module.RubyBackend.vm_run(name + "= ESRubyBind.global_object_to_set");
-      Ruby.ESRubyBind.global_object_to_set = null;
+      this.Object[name] = new_value;
+      return true;
     }
+    var method_exists = Ruby.Kernel.send('respond_to?', [name + '=']);
+    if (method_exists)
+    {
+      this.Kernel[name] = new_value;
+      return true;
+    }
+    this.Kernel.send('global_variable_set', [name, new_value]);
     return true;
   }
   
@@ -141,7 +150,7 @@ ESRubyBind.RubyClosure = class extends ESRubyBind.RubyObject
   
   static apply(target, this_argument, argument_list)
   {
-    return target.backend.send("call", argument_list);
+    return target.backend.send('call', argument_list);
   }
   
 }
@@ -177,7 +186,7 @@ ESRubyBind.RubyInteger = class
   {
     var integer = parseInt(value);
     if (isNaN(integer))
-      throw "Parameter is not a number!";
+      throw 'Parameter is not a number!';
     this._value = integer;
   }
   
@@ -194,7 +203,7 @@ ESRubyBind.RubyFloat = class
   {
     var float = parseFloat(value);
     if (isNaN(float))
-      throw "Parameter is not a number!";
+      throw 'Parameter is not a number!';
     this._value = float;
   }
   
@@ -232,7 +241,7 @@ ESRubyBind.RubyFloat = class
           //// handle set
         //}
         //else
-          //throw "Ruby Array indices only support Integers."
+          //throw 'Ruby Array indices only support Integers.'
         //return value;
       //},
     //});
