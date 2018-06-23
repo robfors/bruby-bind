@@ -1,34 +1,35 @@
-#include "ruby_object_backend.hpp"
+#include "ruby_object_forward_reference.hpp"
 
 
 namespace ESRubyBind
 {
 
-  RubyObjectBackend::RubyObjectBackend(mrb_state* mrb, mrb_value ruby_object)
+  RubyObjectForwardReference::RubyObjectForwardReference(mrb_state* mrb, mrb_value ruby_object)
     : _mrb(mrb), _ruby_self(ruby_object)
   {
     mrb_gc_register(_mrb, _ruby_self);
   }
   
   
-  RubyObjectBackend::~RubyObjectBackend()
+  RubyObjectForwardReference::~RubyObjectForwardReference()
   {
     mrb_gc_unregister(_mrb, _ruby_self);
+    // un ref the val from ruby object
   }
   
   
-  mrb_state* RubyObjectBackend::mrb()
+  mrb_state* RubyObjectForwardReference::mrb()
   {
     return _mrb;
   }
   
   
-  mrb_value RubyObjectBackend::ruby_object()
+  mrb_value RubyObjectForwardReference::ruby_object()
   {
     return _ruby_self;
   }
   
-  emscripten::val RubyObjectBackend::send(emscripten::val js_method_name, emscripten::val js_args)
+  emscripten::val RubyObjectForwardReference::send(emscripten::val js_method_name, emscripten::val js_args)
   {
     if (!js_method_name.isString())
     {
@@ -73,10 +74,10 @@ namespace ESRubyBind
     return js_return;
   }
   
-  EMSCRIPTEN_BINDINGS(ruby_object_backend)
+  EMSCRIPTEN_BINDINGS(ruby_object_forward_reference)
   {
-    emscripten::class_<RubyObjectBackend>("RubyObjectBackend")
-      .function("send", &RubyObjectBackend::send)
+    emscripten::class_<RubyObjectForwardReference>("RubyObjectForwardReference")
+      .function("send", &RubyObjectForwardReference::send)
     ;
   }
 

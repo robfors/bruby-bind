@@ -1,5 +1,5 @@
-#ifndef _ESRUBY_BIND_JS_FUNCTION_HPP_
-#define _ESRUBY_BIND_JS_FUNCTION_HPP_
+#ifndef _ESRUBY_BIND_JAVA_SCRIPT_PORTAL_HPP_
+#define _ESRUBY_BIND_JAVA_SCRIPT_PORTAL_HPP_
 
 
 #include <emscripten.h>
@@ -21,11 +21,11 @@
 
 namespace ESRubyBind
 {
-  namespace JSFunction
+  
+  namespace JavaScriptPortal
   {
   
-    mrb_value new_(mrb_state* mrb, mrb_value ruby_self);
-    mrb_value invoke_with_context(mrb_state* mrb, mrb_value ruby_self);
+    mrb_value eval(mrb_state* mrb, mrb_value ruby_self);
     
   };
   

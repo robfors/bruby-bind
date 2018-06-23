@@ -1,5 +1,5 @@
-#ifndef _ESRUBY_BIND_RUBY_BACKEND_HPP_
-#define _ESRUBY_BIND_RUBY_BACKEND_HPP_
+#ifndef _ESRUBY_BIND_RUBY_PORTAL_HPP_
+#define _ESRUBY_BIND_RUBY_PORTAL_HPP_
 
 
 #include <stdlib.h>
@@ -32,12 +32,12 @@
 namespace ESRubyBind
 {
 
-  class RubyBackend
+  class RubyPortal
   {
   
     public:
     
-    RubyBackend(); // only needed for EMSCRIPTEN_BINDINGS to work
+    RubyPortal(); // only needed for EMSCRIPTEN_BINDINGS to work
     
     static emscripten::val eval(emscripten::val js_code);
     

@@ -1,9 +1,9 @@
-#include "java_script.hpp"
+#include "java_script_portal.hpp"
 
 
 namespace ESRubyBind
 {
-  namespace JavaScript
+  namespace JavaScriptPortal
   {
   
     mrb_value eval(mrb_state* mrb, mrb_value ruby_self)

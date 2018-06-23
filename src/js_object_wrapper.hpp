@@ -1,5 +1,5 @@
-#ifndef _ESRUBY_BIND_JS_OBJECT_HPP_
-#define _ESRUBY_BIND_JS_OBJECT_HPP_
+#ifndef _ESRUBY_BIND_JS_OBJECT_WRAPPER_HPP_
+#define _ESRUBY_BIND_JS_OBJECT_WRAPPER_HPP_
 
 
 #include <emscripten.h>
@@ -22,7 +22,7 @@
 namespace ESRubyBind
 {
   
-  namespace JSObject
+  namespace JSObjectWrapper
   {
   
     mrb_value build(mrb_state* mrb, mrb_value ruby_self);

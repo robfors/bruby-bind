@@ -1,15 +1,15 @@
-#include "ruby_backend.hpp"
+#include "ruby_portal.hpp"
 
 
 namespace ESRubyBind
 {
 
   // only needed for EMSCRIPTEN_BINDINGS to work
-  RubyBackend::RubyBackend()
+  RubyPortal::RubyPortal()
   {
   }
   
-  emscripten::val RubyBackend::eval(emscripten::val js_code)
+  emscripten::val RubyPortal::eval(emscripten::val js_code)
   {
     if (!js_code.isString())
     {
@@ -33,10 +33,10 @@ namespace ESRubyBind
     return js_return;
   }
   
-  EMSCRIPTEN_BINDINGS(ruby_backend)
+  EMSCRIPTEN_BINDINGS(ruby_portal)
   {
-    emscripten::class_<RubyBackend>("RubyBackend")
-      .class_function("eval", &RubyBackend::eval)
+    emscripten::class_<RubyPortal>("RubyPortal")
+      .class_function("eval", &RubyPortal::eval)
     ;
   }
 

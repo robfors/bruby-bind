@@ -11,6 +11,13 @@ namespace ESRubyBind
     mrb_free(mrb, js_object);
   }
   
+  //void rb_object_backend_type_gc(mrb_state* mrb, void* ptr)
+  //{
+    //emscripten::val* js_object = (emscripten::val*)ptr;
+    //js_object->~val();
+    //mrb_free(mrb, js_object);
+  //}
+  
   emscripten::val ruby_obj_to_js_object(mrb_state* mrb, mrb_value ruby_object)
   {
     emscripten::val js_object = emscripten::val::undefined();
@@ -56,10 +63,28 @@ namespace ESRubyBind
         break; // handle after switch
     }
     
+    
+    
+    //emscripten::val* js_object = (emscripten::val*)mrb_malloc(mrb, sizeof(emscripten::val));
+      //new (js_object) emscripten::val(emscripten::val::object());
+      //mrb_value ruby_object_reference =
+        //mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &val_object_type, js_object));
+      //mrb_iv_set(mrb, ruby_object, mrb_intern_lit(mrb, "@emscripten_val"), ruby_object_reference);
+    
+    
+    //mrb_value ruby_object_reference = mrb_iv_get(mrb, ruby_object, mrb_intern_lit(mrb, "@emscripten_val"));
+    //js_object = *(emscripten::val*)mrb_get_datatype(mrb, ruby_object_reference, &val_object_type);
+    //return js_object;
+    
+    
+        
+    
+    
+    
     RClass* ruby_class;
     
     // JSUndefined
-    ruby_class = mrb_class_get_under(mrb, ruby_js_module, "Undefined");
+    ruby_class = mrb_class_get_under(mrb, js_portal_rb_module, "Undefined");
     if (mrb_obj_is_kind_of(mrb, ruby_object, ruby_class))
     {
       js_object = emscripten::val::undefined();
@@ -72,7 +97,7 @@ namespace ESRubyBind
     
     // JSFunction
     // JSObject
-    ruby_class = mrb_class_get_under(mrb, ruby_js_module, "Object");
+    ruby_class = mrb_class_get_under(mrb, js_portal_rb_module, "Object");
     if (mrb_obj_is_kind_of(mrb, ruby_object, ruby_class))
     {
       mrb_value ruby_object_reference = mrb_iv_get(mrb, ruby_object, mrb_intern_lit(mrb, "@emscripten_val"));
@@ -87,7 +112,7 @@ namespace ESRubyBind
     RClass* ruby_proc_class = mrb_class_get(mrb, "Proc");
     mrb_bool is_method_object = mrb_obj_is_kind_of(mrb, ruby_object, ruby_method_class);
     mrb_bool is_proc_object = mrb_obj_is_kind_of(mrb, ruby_object, ruby_proc_class);
-    RubyObjectBackend cpp_object = RubyObjectBackend(mrb, ruby_object);
+    RubyObjectForwardReference cpp_object = RubyObjectForwardReference(mrb, ruby_object);
     emscripten::val js_class = emscripten::val::undefined();
     if (is_method_object || is_proc_object)
       js_class = emscripten::val::global()["ESRubyBind"]["RubyClosure"];
@@ -180,12 +205,13 @@ namespace ESRubyBind
     
     // ruby closure
     // ruby Object
-    if (js_object["esruby_bind_backend"] != emscripten::val::undefined())
+    if (js_object["esruby_bind_reference"] != emscripten::val::undefined())
     {
-      RubyObjectBackend cpp_object = js_object["esruby_bind_backend"].as<RubyObjectBackend>();
+      RubyObjectForwardReference cpp_object =
+        js_object["esruby_bind_reference"].as<RubyObjectForwardReference>();
       // TODO: we could support of passing around objects belonging to different esruby instances 
       if (mrb != cpp_object.mrb())
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "RubyObjectBackend belongs to different esruby instance.");
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "esruby_bind_reference belongs to different esruby instance.");
       ruby_object = cpp_object.ruby_object();
       return ruby_object;
     }
@@ -201,7 +227,7 @@ namespace ESRubyBind
       new (js_object_copy) emscripten::val(js_object);
       mrb_value ruby_object_reference =
         mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &val_object_type, js_object_copy));
-      ruby_object = mrb_obj_new(mrb, ruby_js_function_class, 0, NULL); 
+      ruby_object = mrb_obj_new(mrb, js_function_wrapper_rb_class, 0, NULL); 
       mrb_iv_set(mrb, ruby_object, mrb_intern_lit(mrb, "@emscripten_val"), ruby_object_reference);
       // add ref to weak map
       return ruby_object;
@@ -214,7 +240,7 @@ namespace ESRubyBind
     new (js_object_copy) emscripten::val(js_object);
     mrb_value ruby_object_reference =
       mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &val_object_type, js_object_copy));
-    ruby_object = mrb_obj_new(mrb, ruby_js_object_class, 0, NULL); 
+    ruby_object = mrb_obj_new(mrb, js_object_wrapper_rb_class, 0, NULL); 
     mrb_iv_set(mrb, ruby_object, mrb_intern_lit(mrb, "@emscripten_val"), ruby_object_reference);
     // add ref to weak map
     return ruby_object;
@@ -222,19 +248,19 @@ namespace ESRubyBind
   
   void initialize_gem(mrb_state* mrb)
   {
-    ruby_js_module = mrb_define_module(mrb, "JavaScript");
-    mrb_define_class_method(mrb, ruby_js_module, "eval", JavaScript::eval, MRB_ARGS_REQ(1));
+    js_portal_rb_module = mrb_define_module(mrb, "JavaScript");
+    mrb_define_class_method(mrb, js_portal_rb_module, "eval", JavaScriptPortal::eval, MRB_ARGS_REQ(1));
     
-    ruby_js_object_class = mrb_define_class_under(mrb, ruby_js_module, "Object", mrb->object_class);
-    mrb_define_class_method(mrb, ruby_js_object_class, "build", JSObject::build, MRB_ARGS_NONE());
-    mrb_define_method(mrb, ruby_js_object_class, "get", JSObject::get, MRB_ARGS_REQ(1));
-    mrb_define_method(mrb, ruby_js_object_class, "set", JSObject::set, MRB_ARGS_REQ(2));
+    js_object_wrapper_rb_class = mrb_define_class_under(mrb, js_portal_rb_module, "Object", mrb->object_class);
+    mrb_define_class_method(mrb, js_object_wrapper_rb_class, "build", JSObjectWrapper::build, MRB_ARGS_NONE());
+    mrb_define_method(mrb, js_object_wrapper_rb_class, "get", JSObjectWrapper::get, MRB_ARGS_REQ(1));
+    mrb_define_method(mrb, js_object_wrapper_rb_class, "set", JSObjectWrapper::set, MRB_ARGS_REQ(2));
     
-    ruby_js_function_class = mrb_define_class_under(mrb, ruby_js_module, "Function", ruby_js_object_class);
-    mrb_define_method(mrb, ruby_js_function_class, "new", JSFunction::new_, MRB_ARGS_ANY());
-    mrb_define_method(mrb, ruby_js_function_class, "invoke_with_context", JSFunction::invoke_with_context, MRB_ARGS_REQ(1)|MRB_ARGS_ANY());
+    js_function_wrapper_rb_class = mrb_define_class_under(mrb, js_portal_rb_module, "Function", js_object_wrapper_rb_class);
+    mrb_define_method(mrb, js_function_wrapper_rb_class, "new", JSFunctionWrapper::new_, MRB_ARGS_ANY());
+    mrb_define_method(mrb, js_function_wrapper_rb_class, "invoke_with_context", JSFunctionWrapper::invoke_with_context, MRB_ARGS_REQ(1)|MRB_ARGS_ANY());
     
-    (void)RubyBackend(); // only needed for EMSCRIPTEN_BINDINGS to work
+    (void)RubyPortal(); // only needed for EMSCRIPTEN_BINDINGS to work
   }
   
   

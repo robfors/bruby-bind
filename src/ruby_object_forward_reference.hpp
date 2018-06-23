@@ -1,5 +1,5 @@
-#ifndef _ESRUBY_BIND_RUBY_OBJECT_BACKEND_HPP_
-#define _ESRUBY_BIND_RUBY_OBJECT_BACKEND_HPP_
+#ifndef _ESRUBY_BIND_RUBY_OBJECT_FORWARD_REFERENCE_HPP_
+#define _ESRUBY_BIND_RUBY_OBJECT_FORWARD_REFERENCE_HPP_
 
 
 #include <emscripten.h>
@@ -23,13 +23,13 @@
 namespace ESRubyBind
 {
 
-  class RubyObjectBackend
+  class RubyObjectForwardReference
   {
   
     public:
     
-    RubyObjectBackend(mrb_state* mrb, mrb_value ruby_object);
-    ~RubyObjectBackend();
+    RubyObjectForwardReference(mrb_state* mrb, mrb_value ruby_object);
+    ~RubyObjectForwardReference();
     mrb_state* mrb();
     mrb_value ruby_object();
     emscripten::val send(emscripten::val js_method_name, emscripten::val js_args);

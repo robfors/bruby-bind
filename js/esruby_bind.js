@@ -3,8 +3,18 @@ ESRubyBind = class
   
   static eval(...args)
   {
-    return Module.RubyBackend.eval(...args);
+    return Module.RubyPortal.eval(...args);
   }
+  
+  //static eval_raw(...args)
+  //{
+    //return Module.RubyBackend.eval(...args);
+  //}
+  
+  //static ruby_to_js(ruby_object_reference)
+  //{
+    //if (
+  //}
   
 }
 
@@ -12,11 +22,11 @@ ESRubyBind = class
 ESRubyBind.RubyObject = class
 {
   
-  constructor(backend)
+  constructor(reference)
   {
     var handlers = ESRubyBind.RubyObject;
     var target = {};
-    target.backend = backend;
+    target.reference = reference;
     var wrapper = new Proxy(target, handlers);
     return wrapper;
   }
@@ -27,30 +37,30 @@ ESRubyBind.RubyObject = class
     {
     case 'esruby_bind_class':
       return ESRubyBind.RubyObject;
-    case 'esruby_bind_backend':
-      return target.backend;
+    case 'esruby_bind_reference':
+      return target.reference;
     case 'forget':
-      return (function () {target.backend.delete();});
+      return (function () {target.reference.delete();});
     case 'send':
       return function (method_name, args)
       {
         var method_name = String(method_name);
-        return target.backend.send(method_name, args);
+        return target.reference.send(method_name, args);
       }
     default:
       var name = String(key);
       var is_constant = (name[0] !== name[0].toLowerCase());
       if (is_constant)
       {
-        if (target.backend.send('respond_to?', ['const_get']))
-          return target.backend.send('const_get', [name]);
+        if (target.forward_reference.send('respond_to?', ['const_get']))
+          return target.reference.send('const_get', [name]);
         else
           throw 'Error: Can not get constants from that object.';
       }
       else
       {
         var name_symbol = new ESRubyBind.RubySymbol(name);
-        return target.backend.send('method', [name_symbol]);
+        return target.reference.send('method', [name_symbol]);
       }
     }
   }
@@ -61,15 +71,15 @@ ESRubyBind.RubyObject = class
     var is_constant = (name[0] !== name[0].toLowerCase());
     if (is_constant)
     {
-      if (target.backend.send('respond_to?', ['const_set']))
-        target.backend.send('const_set', [name, new_value]);
+      if (target.reference.send('respond_to?', ['const_set']))
+        target.reference.send('const_set', [name, new_value]);
       else
         throw 'Error: Can not set constants to that object.';
     }
     else
     {
       name += '=';
-      target.backend.send(name, [new_value]);
+      target.reference.send(name, [new_value]);
     }
     return true;
   }
@@ -139,18 +149,19 @@ Ruby = new ESRubyBind._Ruby;
 ESRubyBind.RubyClosure = class extends ESRubyBind.RubyObject
 {
   
-  constructor(backend)
+  constructor(reference)
   {
     var handlers = ESRubyBind.RubyClosure;
     var target = new Function;
-    target.backend = backend;
+    target.reference = reference;
     var wrapper = new Proxy(target, handlers);
     return wrapper;
   }
   
   static apply(target, this_argument, argument_list)
   {
-    return target.backend.send('call', argument_list);
+    return target.reference.send('call', argument_list);
+    return target.reference.send('call', argument_list);
   }
   
 }
@@ -210,6 +221,45 @@ ESRubyBind.RubyFloat = class
   get value()
   {
     return this._value;
+  }
+}
+
+
+ESRubyBind.RubyExceptionClass = class
+{
+  constructor(reference)
+  {
+    return class extends ESRubyBind.RubyExceptionClass
+    {
+      constructor(message)
+      {
+        return reference.send('new', message);
+      }
+      
+      static get reference()
+      {
+        return reference;
+      }
+      
+      static get name()
+      {
+        return reference.send('name');
+      }
+    }
+  }
+}
+
+ESRubyBind.RubyException = class extends Error
+{
+  constructor(reference)
+  {
+    super();
+    this.message = message || this.constructor.default_message;
+    this.name = this.constructor.name;
+    if (typeof Error.captureStackTrace === 'function')
+      Error.captureStackTrace(this, this.constructor);
+    else
+      this.stack = (new Error(this.message)).stack;
   }
 }
 

@@ -1,9 +1,9 @@
-#include "js_function.hpp"
+#include "js_function_wrapper.hpp"
 
 
 namespace ESRubyBind
 {
-  namespace JSFunction
+  namespace JSFunctionWrapper
   {
   
     mrb_value new_(mrb_state* mrb, mrb_value ruby_self)

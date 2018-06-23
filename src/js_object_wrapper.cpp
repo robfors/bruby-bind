@@ -1,9 +1,9 @@
-#include "js_object.hpp"
+#include "js_object_wrapper.hpp"
 
 
 namespace ESRubyBind
 {
-  namespace JSObject
+  namespace JSObjectWrapper
   {
   
     mrb_value build(mrb_state* mrb, mrb_value ruby_self)

@@ -17,22 +17,24 @@
 #include <mruby/variable.h>
 #include <new>
 
-#include "java_script.hpp"
-#include "js_object.hpp"
-#include "js_function.hpp"
-#include "ruby_backend.hpp"
-#include "ruby_object_backend.hpp"
+#include "java_script_portal.hpp"
+#include "js_object_wrapper.hpp"
+#include "js_function_wrapper.hpp"
+#include "ruby_portal.hpp"
+#include "ruby_object_forward_reference.hpp"
 
 
 namespace ESRubyBind
 {
 
-  RClass* ruby_js_module;
-  RClass* ruby_js_object_class;
-  RClass* ruby_js_function_class;
+  RClass* js_portal_rb_module;
+  RClass* js_object_wrapper_rb_class;
+  RClass* js_function_wrapper_rb_class;
   
   void val_object_type_gc(mrb_state* mrb, void* ptr);
   struct mrb_data_type val_object_type = {"val_object_type", val_object_type_gc};
+  //void rb_object_backend_type_gc(mrb_state* mrb, void* ptr);
+  //struct mrb_data_type rb_object_backend_type = {"rb_object_backend", rb_object_backend_type_gc};
   
   emscripten::val ruby_obj_to_js_object(mrb_state* mrb, mrb_value ruby_object);
   mrb_value js_object_to_ruby_object(mrb_state* mrb, emscripten::val js_object);
