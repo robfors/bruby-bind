@@ -1,5 +1,5 @@
-#ifndef _ESRUBY_BIND_JS_OBJECT_WRAPPER_HPP_
-#define _ESRUBY_BIND_JS_OBJECT_WRAPPER_HPP_
+#ifndef _ESRUBY_BIND_RUBY_OBJECT_REFERENCE_HPP_
+#define _ESRUBY_BIND_RUBY_OBJECT_REFERENCE_HPP_
 
 
 #include <emscripten.h>
@@ -15,19 +15,28 @@
 #include <mruby/string.h>
 #include <mruby/value.h>
 #include <mruby/variable.h>
+#include <stdexcept>
 
 #include "esruby_bind_extern.hpp"
-#include "ruby_object_backward_reference.hpp"
+
 
 namespace ESRubyBind
 {
-  
-  namespace JSObjectWrapper
+
+  class RubyObjectReference
   {
   
-    mrb_value build(mrb_state* mrb, mrb_value ruby_self);
-    mrb_value get(mrb_state* mrb, mrb_value ruby_self);
-    mrb_value set(mrb_state* mrb, mrb_value ruby_self);
+    public:
+    
+    RubyObjectReference(mrb_state* mrb, mrb_value ruby_object);
+    virtual ~RubyObjectReference();
+    mrb_state* mrb() const;
+    mrb_value ruby_object() const;
+    
+    protected:
+    
+    mrb_state* _mrb;
+    mrb_value _ruby_self;
     
   };
   

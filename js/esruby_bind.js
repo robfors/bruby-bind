@@ -1,3 +1,13 @@
+Object.prototype.instanceof = function (constructor)
+{
+  return this instanceof constructor;
+}
+
+Object.prototype.typeof = function ()
+{
+  return typeof this.valueOf();
+}
+
 ESRubyBind = class
 {
   
@@ -22,11 +32,11 @@ ESRubyBind = class
 ESRubyBind.RubyObject = class
 {
   
-  constructor(reference)
+  constructor(forward_reference)
   {
     var handlers = ESRubyBind.RubyObject;
     var target = {};
-    target.reference = reference;
+    target.forward_reference = forward_reference;
     var wrapper = new Proxy(target, handlers);
     return wrapper;
   }
@@ -37,15 +47,15 @@ ESRubyBind.RubyObject = class
     {
     case 'esruby_bind_class':
       return ESRubyBind.RubyObject;
-    case 'esruby_bind_reference':
-      return target.reference;
+    case 'esruby_bind_forward_reference':
+      return target.forward_reference;
     case 'forget':
-      return (function () {target.reference.delete();});
+      return (function () {target.forward_reference.delete();});
     case 'send':
       return function (method_name, args)
       {
         var method_name = String(method_name);
-        return target.reference.send(method_name, args);
+        return target.forward_reference.send(method_name, args);
       }
     default:
       var name = String(key);
@@ -53,37 +63,43 @@ ESRubyBind.RubyObject = class
       if (is_constant)
       {
         if (target.forward_reference.send('respond_to?', ['const_get']))
-          return target.reference.send('const_get', [name]);
+          return target.forward_reference.send('const_get', [name]);
         else
           throw 'Error: Can not get constants from that object.';
       }
       else
       {
         var name_symbol = new ESRubyBind.RubySymbol(name);
-        return target.reference.send('method', [name_symbol]);
+        return target.forward_reference.send('method', [name_symbol]);
       }
     }
   }
   
   static set(target, key, new_value)
   {
-    var name = String(key);
-    var is_constant = (name[0] !== name[0].toLowerCase());
-    if (is_constant)
+    switch (key)
     {
-      if (target.reference.send('respond_to?', ['const_set']))
-        target.reference.send('const_set', [name, new_value]);
+    case 'esruby_bind_forward_reference':
+      return target.forward_reference = new_value;
+    default:
+      var name = String(key);
+      var is_constant = (name[0] !== name[0].toLowerCase());
+      if (is_constant)
+      {
+        if (target.forward_reference.send('respond_to?', ['const_set']))
+          target.forward_reference.send('const_set', [name, new_value]);
+        else
+          throw 'Error: Can not set constants to that object.';
+      }
       else
-        throw 'Error: Can not set constants to that object.';
+      {
+        name += '=';
+        target.forward_reference.send(name, [new_value]);
+      }
+      return true;
     }
-    else
-    {
-      name += '=';
-      target.reference.send(name, [new_value]);
-    }
-    return true;
   }
-  
+  // TODO: add other proxy handlers
 }
 
 
@@ -149,19 +165,19 @@ Ruby = new ESRubyBind._Ruby;
 ESRubyBind.RubyClosure = class extends ESRubyBind.RubyObject
 {
   
-  constructor(reference)
+  constructor(forward_reference)
   {
     var handlers = ESRubyBind.RubyClosure;
     var target = new Function;
-    target.reference = reference;
+    target.forward_reference = forward_reference;
     var wrapper = new Proxy(target, handlers);
     return wrapper;
   }
   
   static apply(target, this_argument, argument_list)
   {
-    return target.reference.send('call', argument_list);
-    return target.reference.send('call', argument_list);
+    return target.forward_reference.send('call', argument_list);
+    return target.forward_reference.send('call', argument_list);
   }
   
 }

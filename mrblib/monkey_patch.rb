@@ -44,3 +44,58 @@ end
     #end
   #end
 #end
+
+
+# we use singleton methods to hold a backward reference to wrapper objects
+# the preferred way would be to simply set an instance variable saving it
+#   but due to an mruby limitation (see: https://github.com/mruby/mruby/issues/565)
+#   we can not set the instance variables of built-in objects
+class Object
+
+  def esruby_bind_backward_reference
+    return nil unless respond_to?(:esruby_bind_backward_reference_method)
+    esruby_bind_backward_reference_method
+  end
+  
+  def esruby_bind_backward_reference=(data_object)
+    #if data_object == nil
+    #  puts data_object
+    #  puts respond_to?(:esruby_bind_backward_reference_method)
+    #  puts data_object
+    #  undef :esruby_bind_backward_reference_method if respond_to?(:esruby_bind_backward_reference_method)
+    #else
+      self.define_singleton_method(:esruby_bind_backward_reference_method) {data_object}
+    #end
+    data_object
+  end
+  
+end
+
+
+class A
+
+  def esruby_bind_backward_reference
+    return nil unless respond_to?(:esruby_bind_backward_reference_method)
+    esruby_bind_backward_reference_method
+  end
+  
+  def esruby_bind_backward_reference=(data_object)
+    #puts "esruby_bind_backward_reference=#{data_object}"
+    #if data_object == nil
+    #  puts data_object
+    #  puts respond_to?(:esruby_bind_backward_reference_method)
+    #  puts data_object
+    #  undef :esruby_bind_backward_reference_method if respond_to?(:esruby_bind_backward_reference_method)
+    #else
+      self.define_singleton_method(:esruby_bind_backward_reference_method) {data_object}
+    #end
+    puts "esruby_bind_backward_reference=,name:#{self}, __id__:#{__id__}, esruby_bind_backward_reference:#{esruby_bind_backward_reference}"
+    data_object
+  end
+  
+end
+
+
+def ttt(obj)
+  puts "name:#{obj}, __id__:#{obj.__id__}, esruby_bind_backward_reference:#{obj.esruby_bind_backward_reference}"
+end

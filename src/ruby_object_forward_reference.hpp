@@ -2,42 +2,25 @@
 #define _ESRUBY_BIND_RUBY_OBJECT_FORWARD_REFERENCE_HPP_
 
 
-#include <emscripten.h>
-#include <emscripten/bind.h>
-#include <emscripten/val.h>
-#include <stdio.h>
-#include <math.h>
-#include <mruby.h>
-#include <mruby/array.h>
-#include <mruby/class.h>
-#include <mruby/data.h>
-#include <mruby/proc.h>
-#include <mruby/string.h>
-#include <mruby/value.h>
-#include <mruby/variable.h>
-#include <stdexcept>
-
-#include "esruby_bind_extern.hpp"
+#include "ruby_object_reference.hpp"
 
 
 namespace ESRubyBind
 {
 
-  class RubyObjectForwardReference
+  class RubyObjectForwardReference : public RubyObjectReference
   {
   
     public:
     
     RubyObjectForwardReference(mrb_state* mrb, mrb_value ruby_object);
+    RubyObjectForwardReference(const RubyObjectForwardReference &other);
     ~RubyObjectForwardReference();
-    mrb_state* mrb();
-    mrb_value ruby_object();
-    emscripten::val send(emscripten::val js_method_name, emscripten::val js_args);
+    emscripten::val send(emscripten::val js_method_name, emscripten::val js_args) const;
     
-    protected:
+    private:
     
-    mrb_state* _mrb;
-    mrb_value _ruby_self;
+    unsigned int* _reference_count;
     
   };
   

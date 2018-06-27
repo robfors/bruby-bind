@@ -4,10 +4,21 @@
 namespace ESRubyBind
 {
 
-  void val_object_type_gc(mrb_state* mrb, void* ptr)
+  void js_object_forward_reference_type_gc(mrb_state* mrb, void* ptr)
   {
     emscripten::val* js_object = (emscripten::val*)ptr;
+    // free reference first?
+    js_object->delete_("esruby_bind_backward_reference");
     js_object->~val();
+    mrb_free(mrb, js_object);
+  }
+  
+  void js_object_backward_reference_type_gc(mrb_state* mrb, void* ptr)
+  {
+    emscripten::val* js_object = (emscripten::val*)ptr;
+    printf("debug|b0\n");
+    js_object->~val();
+    printf("debug|b1\n");
     mrb_free(mrb, js_object);
   }
   
@@ -64,23 +75,6 @@ namespace ESRubyBind
     }
     
     
-    
-    //emscripten::val* js_object = (emscripten::val*)mrb_malloc(mrb, sizeof(emscripten::val));
-      //new (js_object) emscripten::val(emscripten::val::object());
-      //mrb_value ruby_object_reference =
-        //mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &val_object_type, js_object));
-      //mrb_iv_set(mrb, ruby_object, mrb_intern_lit(mrb, "@emscripten_val"), ruby_object_reference);
-    
-    
-    //mrb_value ruby_object_reference = mrb_iv_get(mrb, ruby_object, mrb_intern_lit(mrb, "@emscripten_val"));
-    //js_object = *(emscripten::val*)mrb_get_datatype(mrb, ruby_object_reference, &val_object_type);
-    //return js_object;
-    
-    
-        
-    
-    
-    
     RClass* ruby_class;
     
     // JSUndefined
@@ -100,26 +94,48 @@ namespace ESRubyBind
     ruby_class = mrb_class_get_under(mrb, js_portal_rb_module, "Object");
     if (mrb_obj_is_kind_of(mrb, ruby_object, ruby_class))
     {
-      mrb_value ruby_object_reference = mrb_iv_get(mrb, ruby_object, mrb_intern_lit(mrb, "@emscripten_val"));
-      js_object = *(emscripten::val*)mrb_get_datatype(mrb, ruby_object_reference, &val_object_type);
+      mrb_value data_object = mrb_iv_get(mrb, ruby_object, mrb_intern_lit(mrb, "@forward_reference"));
+      js_object = *(emscripten::val*)mrb_get_datatype(mrb, data_object, &js_object_forward_reference_type);
       return js_object;
     }
     
     // ruby Method
     // ruby Proc
     // ruby Object
+    
+    printf("debug|0\n");
+    
+    mrb_funcall(mrb, mrb_top_self(mrb), "ttt", 1, ruby_object); // debug ------------------
+    
+    if (!mrb_nil_p(mrb_funcall(mrb, ruby_object, "esruby_bind_backward_reference", 0, NULL)))
+    {
+      printf("debug|1\n");
+      mrb_value data_object = mrb_funcall(mrb, ruby_object, "esruby_bind_backward_reference", 0, NULL);
+      js_object = *(emscripten::val*)mrb_get_datatype(mrb, data_object, &js_object_backward_reference_type);
+      return js_object;
+    }
+    printf("debug|2\n");
     RClass* ruby_method_class = mrb_class_get(mrb, "Method");
     RClass* ruby_proc_class = mrb_class_get(mrb, "Proc");
     mrb_bool is_method_object = mrb_obj_is_kind_of(mrb, ruby_object, ruby_method_class);
     mrb_bool is_proc_object = mrb_obj_is_kind_of(mrb, ruby_object, ruby_proc_class);
-    RubyObjectForwardReference cpp_object = RubyObjectForwardReference(mrb, ruby_object);
     emscripten::val js_class = emscripten::val::undefined();
+    printf("debug|3\n");
     if (is_method_object || is_proc_object)
       js_class = emscripten::val::global()["ESRubyBind"]["RubyClosure"];
     else
       js_class = emscripten::val::global()["ESRubyBind"]["RubyObject"];
-    
-    js_object = js_class.new_(emscripten::val(cpp_object));
+    RubyObjectForwardReference forward_reference = RubyObjectForwardReference(mrb, ruby_object);
+    js_object = js_class.new_(emscripten::val(forward_reference));
+    js_object.set("esruby_bind_forward_reference", forward_reference);
+    emscripten::val* backward_reference = (emscripten::val*)mrb_malloc(mrb, sizeof(emscripten::val));
+    new (backward_reference) emscripten::val(js_object);
+    mrb_value data_object =
+      mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &js_object_backward_reference_type, backward_reference));
+    printf("debug|4\n");
+    mrb_funcall(mrb, ruby_object, "esruby_bind_backward_reference=", 1, data_object);
+    mrb_funcall(mrb, mrb_top_self(mrb), "ttt", 1, ruby_object);
+    printf("debug|5\n");
     return js_object;
   }
   
@@ -205,45 +221,51 @@ namespace ESRubyBind
     
     // ruby closure
     // ruby Object
-    if (js_object["esruby_bind_reference"] != emscripten::val::undefined())
+    if (!js_object["esruby_bind_forward_reference"].isUndefined())
     {
-      RubyObjectForwardReference cpp_object =
-        js_object["esruby_bind_reference"].as<RubyObjectForwardReference>();
-      // TODO: we could support of passing around objects belonging to different esruby instances 
-      if (mrb != cpp_object.mrb())
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "esruby_bind_reference belongs to different esruby instance.");
-      ruby_object = cpp_object.ruby_object();
-      return ruby_object;
+      RubyObjectReference forward_reference =
+        js_object["esruby_bind_forward_reference"].as<RubyObjectReference>();
+      if (mrb != forward_reference.mrb())
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "forward_reference belongs to different esruby instance.");
+      return forward_reference.ruby_object();
     }
     
     // --- native js object ---
-    
-    // if wrapper already exists return it now
     
     // js Function
     if (type == "function")
     {
       emscripten::val* js_object_copy = (emscripten::val*)mrb_malloc(mrb, sizeof(emscripten::val));
       new (js_object_copy) emscripten::val(js_object);
-      mrb_value ruby_object_reference =
-        mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &val_object_type, js_object_copy));
+      mrb_value data_object =
+        mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &js_object_forward_reference_type, js_object_copy));
       ruby_object = mrb_obj_new(mrb, js_function_wrapper_rb_class, 0, NULL); 
-      mrb_iv_set(mrb, ruby_object, mrb_intern_lit(mrb, "@emscripten_val"), ruby_object_reference);
-      // add ref to weak map
+      mrb_iv_set(mrb, ruby_object, mrb_intern_lit(mrb, "@forward_reference"), data_object);
+      RubyObjectReference backward_reference = RubyObjectReference(mrb, ruby_object);
+      js_object_copy->set("esruby_bind_backward_reference", backward_reference);
       return ruby_object;
     }
     
     // TODO js Array
     
     // js Object
-    emscripten::val* js_object_copy = (emscripten::val*)mrb_malloc(mrb, sizeof(emscripten::val));
-    new (js_object_copy) emscripten::val(js_object);
-    mrb_value ruby_object_reference =
-      mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &val_object_type, js_object_copy));
-    ruby_object = mrb_obj_new(mrb, js_object_wrapper_rb_class, 0, NULL); 
-    mrb_iv_set(mrb, ruby_object, mrb_intern_lit(mrb, "@emscripten_val"), ruby_object_reference);
-    // add ref to weak map
-    return ruby_object;
+    if (emscripten::val("esruby_bind_backward_reference").in(js_object))
+    {
+      // a wrapper for the object already exists, return it now
+      return js_object["esruby_bind_backward_reference"].as<RubyObjectReference>().ruby_object();
+    }
+    else
+    {
+      ruby_object = mrb_obj_new(mrb, js_object_wrapper_rb_class, 0, NULL); 
+      emscripten::val* js_object_copy = (emscripten::val*)mrb_malloc(mrb, sizeof(emscripten::val));
+      new (js_object_copy) emscripten::val(js_object);
+      mrb_value data_object =
+        mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &js_object_forward_reference_type, js_object_copy));
+      mrb_iv_set(mrb, ruby_object, mrb_intern_lit(mrb, "@forward_reference"), data_object);
+      RubyObjectBackwardReference backward_reference = RubyObjectBackwardReference(mrb, ruby_object);
+      js_object_copy->set("esruby_bind_backward_reference", backward_reference);
+      return ruby_object;
+    }
   }
   
   void initialize_gem(mrb_state* mrb)

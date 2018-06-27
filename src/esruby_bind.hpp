@@ -22,6 +22,7 @@
 #include "js_function_wrapper.hpp"
 #include "ruby_portal.hpp"
 #include "ruby_object_forward_reference.hpp"
+#include "ruby_object_backward_reference.hpp"
 
 
 namespace ESRubyBind
@@ -31,8 +32,12 @@ namespace ESRubyBind
   RClass* js_object_wrapper_rb_class;
   RClass* js_function_wrapper_rb_class;
   
-  void val_object_type_gc(mrb_state* mrb, void* ptr);
-  struct mrb_data_type val_object_type = {"val_object_type", val_object_type_gc};
+  void js_object_forward_reference_type_gc(mrb_state* mrb, void* ptr);
+  struct mrb_data_type js_object_forward_reference_type =
+    {"js_object_forward_reference_type", js_object_forward_reference_type_gc};
+  void js_object_backward_reference_type_gc(mrb_state* mrb, void* ptr);
+  struct mrb_data_type js_object_backward_reference_type =
+    {"js_object_backward_reference_type", js_object_backward_reference_type_gc};
   //void rb_object_backend_type_gc(mrb_state* mrb, void* ptr);
   //struct mrb_data_type rb_object_backend_type = {"rb_object_backend", rb_object_backend_type_gc};
   

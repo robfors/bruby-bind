@@ -5,31 +5,40 @@ namespace ESRubyBind
 {
 
   RubyObjectForwardReference::RubyObjectForwardReference(mrb_state* mrb, mrb_value ruby_object)
-    : _mrb(mrb), _ruby_self(ruby_object)
+    : RubyObjectReference(mrb, ruby_object)
   {
+    _reference_count = (unsigned int*)mrb_malloc(mrb, sizeof(unsigned int));
+    *_reference_count = 1;
     mrb_gc_register(_mrb, _ruby_self);
+  }
+  
+  
+  RubyObjectForwardReference::RubyObjectForwardReference(const RubyObjectForwardReference &other)
+    : RubyObjectReference(other._mrb, other._ruby_self)
+  {
+    _reference_count = other._reference_count;
+    (*_reference_count)++;
   }
   
   
   RubyObjectForwardReference::~RubyObjectForwardReference()
   {
-    mrb_gc_unregister(_mrb, _ruby_self);
-    // un ref the val from ruby object
+    (*_reference_count)--;
+    if (*_reference_count == 0)
+    {
+      printf("debug|c0\n");
+      mrb_value data_object = mrb_funcall(_mrb, _ruby_self, "esruby_bind_backward_reference", 0, NULL);
+      emscripten::val* backward_reference = (emscripten::val*)mrb_get_datatype(_mrb, data_object, &js_object_backward_reference_type);
+      mrb_free(_mrb, backward_reference);
+      mrb_funcall(_mrb, _ruby_self, "esruby_bind_backward_reference=", 1, mrb_nil_value());
+      mrb_gc_unregister(_mrb, _ruby_self);
+      printf("debug|c5\n");
+      free(_reference_count);
+    }
   }
   
   
-  mrb_state* RubyObjectForwardReference::mrb()
-  {
-    return _mrb;
-  }
-  
-  
-  mrb_value RubyObjectForwardReference::ruby_object()
-  {
-    return _ruby_self;
-  }
-  
-  emscripten::val RubyObjectForwardReference::send(emscripten::val js_method_name, emscripten::val js_args)
+  emscripten::val RubyObjectForwardReference::send(emscripten::val js_method_name, emscripten::val js_args) const
   {
     if (!js_method_name.isString())
     {
@@ -69,16 +78,16 @@ namespace ESRubyBind
       _mrb->exc = 0;
       throw std::runtime_error("");
     }
-    
+    printf("debug:a0\n");
     emscripten::val js_return = ruby_obj_to_js_object(_mrb, ruby_return);
+    printf("debug:a1\n");
     return js_return;
   }
   
   EMSCRIPTEN_BINDINGS(ruby_object_forward_reference)
   {
-    emscripten::class_<RubyObjectForwardReference>("RubyObjectForwardReference")
-      .function("send", &RubyObjectForwardReference::send)
-    ;
+    emscripten::class_<RubyObjectForwardReference, emscripten::base<RubyObjectReference>>("RubyObjectForwardReference")
+      .function("send", &RubyObjectForwardReference::send);
   }
 
 }

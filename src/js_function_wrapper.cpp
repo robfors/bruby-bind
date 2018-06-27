@@ -23,8 +23,8 @@ namespace ESRubyBind
         cpp_js_args.push_back(js_arg);
       }
       
-      mrb_value ruby_self_reference = mrb_iv_get(mrb, ruby_self, mrb_intern_lit(mrb, "@emscripten_val"));
-      emscripten::val js_self = *(emscripten::val*)mrb_get_datatype(mrb, ruby_self_reference, &val_object_type);
+      mrb_value data_object = mrb_iv_get(mrb, ruby_self, mrb_intern_lit(mrb, "@forward_reference"));
+      emscripten::val js_self = *(emscripten::val*)mrb_get_datatype(mrb, data_object, &js_object_forward_reference_type);
       
       emscripten::val js_return = js_self.new_(cpp_js_args);
       
@@ -52,8 +52,8 @@ namespace ESRubyBind
         js_args.call<void>("push", js_arg);
       }
       
-      mrb_value ruby_self_reference = mrb_iv_get(mrb, ruby_self, mrb_intern_lit(mrb, "@emscripten_val"));
-      emscripten::val js_self = *(emscripten::val*)mrb_get_datatype(mrb, ruby_self_reference, &val_object_type);
+      mrb_value data_object = mrb_iv_get(mrb, ruby_self, mrb_intern_lit(mrb, "@forward_reference"));
+      emscripten::val js_self = *(emscripten::val*)mrb_get_datatype(mrb, data_object, &js_object_forward_reference_type);
       
       emscripten::val js_return = js_self.call<emscripten::val>("apply", js_context, js_args);
       
