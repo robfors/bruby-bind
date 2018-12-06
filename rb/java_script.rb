@@ -1,7 +1,6 @@
 module JavaScript
   include BRubyBind::ConvertMeta
   extend BRubyBind::DynamicJSMethod
-  include BRubyBridge
   
 
   # public
@@ -20,14 +19,14 @@ module JavaScript
   
   # public
   def self.get(property_path)
-    convert_call { JSValue.get(property_path) }
+    convert_call { BRubyBridge::JSValue.get(property_path) }
   end
   alias_singleton_method :[], :get
 
 
   # public
   def self.global
-    convert_call { JSValue.global }
+    convert_call { BRubyBridge::JSValue.global }
   end
   alias_singleton_method :window, :global
   

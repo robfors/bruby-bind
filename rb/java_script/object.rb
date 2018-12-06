@@ -21,7 +21,7 @@ module JavaScript
 
 
     def initialize(js_value)
-      raise TypeError unless js_value.is_a?(JSValue)
+      raise TypeError unless js_value.is_a?(BRubyBridge::JSValue)
       @js_value = js_value
     end
 

@@ -1,10 +1,9 @@
 module JavaScript
   class Error < StandardError
     include BRubyBind::ConvertMeta
-    include BRubyBridge
 
     
-    @js_value = JSValue['Error']
+    @js_value = BRubyBridge::JSValue['Error']
 
     #def ==(other_object)
     #  message == other_object.message &&
@@ -41,7 +40,7 @@ module JavaScript
 
     # private
     def self.new_error(js_value)
-      klass = Convert.js_to_rb(js_value['constructor'])
+      klass = BRubyBind::Convert.js_to_rb(js_value['constructor'])
       klass.new(js_value)
     end
 

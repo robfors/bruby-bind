@@ -1,4 +1,4 @@
-JSValue =  BRubyBridge::JSValue
+JSValue = BRubyBridge::JSValue
 
 puts "start-rb-java_script"
 
