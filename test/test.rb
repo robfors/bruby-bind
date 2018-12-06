@@ -14,6 +14,8 @@ end
 
 
 def test(message)
+  # TODO: temp
+  BRubyBridge::JSValue.global.call('forget_old_ruby_objects')
   puts "test: #{message}"
   nil
 end
